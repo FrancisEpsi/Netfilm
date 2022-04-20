@@ -48,24 +48,29 @@ namespace ExoHttpAPI
 
         static void ExecuteRequest(HttpListenerContext conn)
         {
-            //A tester la modificaiton:
+            string Route = conn.Request.RawUrl;
+
             if (conn.Request.RawUrl == "/")
             {
-                Console.WriteLine("Page d'accueil envoyé"); //
                 SendHtmlResponse(conn, "<html><body><h1>Projet Site de films</h1><h2><u>Matiere:</u> Service WEB: Communication et echange de donnees</h2><h2><u>Participants:</u> Francois SAURA et Loic LABAISSE</h2><h2><u>Objectifs:</u> Developper un site internet d informations cinematographique en utilisant l API de TheMovieDB</h2><h1 style='text-align: center;'>BIENVENUE SUR LE SERVEUR API (Backend)</h1><p style='text-align: center;'>Veuillez utiliser convenablement l API avec une URI valide.</p></body></html>");
+                return;
             }
-            else if (conn.Request.RawUrl.StartsWith("/Films/"))
+
+            string[] Path = Route.Split("/");
+            if (Path[1] == "Films")
             {
                 string jsonString = GetJsonApi();
                 SendJsonResponse(conn, jsonString);
-
-            }
-            else
+            } else if (Path[1] == "Login")
             {
-                SendHtmlResponse(conn, conn.Request.RawUrl + "<br>la route spécifié n'est pas définie.");
+                string Username = Path[2];
+                SendHtmlResponse(conn, "Login de l'utilisateur : " + Username);
+            } else
+            {
+                SendHtmlResponse(conn, Route + "<br>la route spécifié n'est pas définie.");
             }
 
-            
+
         }
 
         static void SendHtmlResponse(HttpListenerContext conn, string html)
