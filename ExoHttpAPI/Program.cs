@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.IO;
 using Newtonsoft.Json;
+using System.Resources;
 
 namespace ExoHttpAPI
 {
@@ -48,16 +49,35 @@ namespace ExoHttpAPI
         static void ExecuteRequest(HttpListenerContext conn)
         {
             //A tester la modificaiton:
-            if (conn.Request.RawUrl == "/") {
-                Console.WriteLine(""); //
+            if (conn.Request.RawUrl == "/")
+            {
+                Console.WriteLine("Page d'accueil envoyé"); //
+                SendHtmlResponse(conn, "<html><body><h1>Projet Site de films</h1><h2><u>Matiere:</u> Service WEB: Communication et echange de donnees</h2><h2><u>Participants:</u> Francois SAURA et Loic LABAISSE</h2><h2><u>Objectifs:</u> Developper un site internet d informations cinematographique en utilisant l API de TheMovieDB</h2><h1 style='text-align: center;'>BIENVENUE SUR LE SERVEUR API (Backend)</h1><p style='text-align: center;'>Veuillez utiliser convenablement l API avec une URI valide.</p></body></html>");
             }
-            else if (conn.Request.RawUrl.StartsWith("/Films/")) {
+            else if (conn.Request.RawUrl.StartsWith("/Films/"))
+            {
                 string jsonString = GetJsonApi();
                 SendJsonResponse(conn, jsonString);
+
             }
-            
+            else
+            {
+                SendHtmlResponse(conn, conn.Request.RawUrl + "<br>la route spécifié n'est pas définie.");
+            }
 
             
+        }
+
+        static void SendHtmlResponse(HttpListenerContext conn, string html)
+        {
+            HttpListenerResponse rep = conn.Response;
+            rep.ContentType = "text/html; charset=utf-8";
+            rep.ContentEncoding = System.Text.Encoding.UTF8;
+            byte[] htmlBytes = System.Text.Encoding.UTF8.GetBytes(html);
+            rep.ContentLength64 = htmlBytes.Length;
+            Stream outputStream = rep.OutputStream;
+            outputStream.Write(htmlBytes, 0, htmlBytes.Length);
+            outputStream.Close();
         }
 
         static void SendJsonResponse(HttpListenerContext conn, string jsonString)
@@ -73,6 +93,7 @@ namespace ExoHttpAPI
 
             Stream outputStream = rep.OutputStream;
             outputStream.Write(buffer, 0, buffer.Length);
+            outputStream.Close(); //Fermer le flux ici ?
         }
 
         
