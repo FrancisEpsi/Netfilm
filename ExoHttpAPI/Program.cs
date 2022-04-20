@@ -49,7 +49,7 @@ namespace ExoHttpAPI
         {
             //A tester la modificaiton:
             if (conn.Request.RawUrl == "/") {
-                Console.WriteLine("");
+                Console.WriteLine(""); //
             }
             else if (conn.Request.RawUrl.StartsWith("/Films/")) {
                 string jsonString = GetJsonApi();
