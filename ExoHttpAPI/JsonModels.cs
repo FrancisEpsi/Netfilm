@@ -14,6 +14,14 @@ namespace ExoHttpAPI
     /// </summary>
     public class LoginResponse
     {
+
+        public int id;
+        public string first_name;
+        public string last_name;
+        public string access_token;
+        public bool exist = false;
+        public string ErrorComment;
+
         public LoginResponse() {}
 
         /// <summary>
@@ -38,12 +46,22 @@ namespace ExoHttpAPI
             reader.Close();
         }
 
-        public int id;
-        public string first_name;
-        public string last_name;
-        public string access_token;
-        public bool exist = false;
-        public string ErrorComment;
+        /// <summary>
+        /// Sérialise l'objet actuel avec un formattage JSON
+        /// </summary>
+        /// <returns>Un string contenant les propriétées de l'objet sérialisé au format JSON (prêt à l'envoi). Retourne null si le sérialisation à échoué.</returns>
+        public string getJsonResponse()
+        {
+            try
+            {
+                return JsonConvert.SerializeObject(this);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
     }
 
     /// <summary>
@@ -88,7 +106,6 @@ namespace ExoHttpAPI
             {
                 return null;
             }
-            
         }
     }
 

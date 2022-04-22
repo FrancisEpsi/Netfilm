@@ -67,21 +67,27 @@ namespace ExoHttpAPI
                 SendJsonResponse(conn, jsonString);
 
             } else if (Path[1] == "LOGIN") { //Route /LOGIN
-
+                if (Path.Length < 4) ///     /!\ A TESTER : Système de vérification de la route.
+                {
+                    LoginResponse ErrorResponseObj = new LoginResponse();
+                    ErrorResponseObj.ErrorComment = "Mauvaise utilisation de l'API. Vérifiez votre route. Il doit y avoir au moins 1 autres slash après la route /Login/ (Domain:Port/Login/user/passhash)";
+                    SendJsonResponse(conn, ErrorResponseObj.getJsonResponse(), 400);
+                    return;
+                }
                 string Email = Path[2];
                 string Passhash = Path[3];
 
                 LoginResponse RepObj = new LoginResponse(Email, Passhash);
 
-                Console.WriteLine("Login de l'utilisateur : " + Email + " Hash de son mdp: " + Passhash);
-
                 String jsonRepString = JsonConvert.SerializeObject(RepObj);
                 if (RepObj.exist == true)
                 {
                     SendJsonResponse(conn, jsonRepString, 200);
+                    Log("Utilisateur " + RepObj.first_name + " " + RepObj.last_name + " Authentifié avec succès !");
                 } else
                 {
                     SendJsonResponse(conn, jsonRepString, 400); //L'utilisateur est introuvable ou le login/mdp ne correspond pas.
+                    Log("Tentative d'identification de l'utilisateur " + Email + " échouée.");
                 }
 
 
@@ -92,7 +98,7 @@ namespace ExoHttpAPI
                 string email = Path[4];
                 string passhash = Path[5];
 
-                Console.WriteLine("Création de l'utilisateur " + first_name + " " + last_name + " avec l'email: " + email + " et le mot de passe hashé: " + passhash);
+                Log("Création de l'utilisateur " + first_name + " " + last_name + " avec l'email: " + email + " et le mot de passe hashé: " + passhash);
                 var repObj = new GetResponse();
                 
                 //Vérifie que l'email n'est pas déjà existant dans la base:
@@ -122,13 +128,13 @@ namespace ExoHttpAPI
                     repObj.statusCode = 200;
                     repObj.comment = "Utilisateur créer avec succès.";
                     SendJsonResponse(conn, repObj.getJsonResponse());
-                    Console.WriteLine("L'utilisateur à bien été créer en base de donnée.");
+                    Log("L'utilisateur à bien été créer en base de donnée.");
                 } else {
                     repObj.statusCode = 400;
                     repObj.comment = "Impossible d'ajouter l'utilisateur dans la base de donnée.";
                     SendStatutResponse(conn, 400);
                     SendJsonResponse(conn, repObj.getJsonResponse(), 400);
-                    Console.WriteLine("Impossible d'effectuer une requête d'insertion en base de donnée pour ajouter l'utilisateur.");
+                    Log("Impossible d'effectuer une requête d'insertion en base de donnée pour ajouter l'utilisateur.");
                 }
                 
             } 
@@ -198,7 +204,7 @@ namespace ExoHttpAPI
 
         static void Log(string text)
         {
-            Console.WriteLine(text);
+            Log(text);
         }
     }
 }
