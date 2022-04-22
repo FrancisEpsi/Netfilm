@@ -204,7 +204,7 @@ namespace ExoHttpAPI
 
         static void Log(string text)
         {
-            Log(text);
+            Console.WriteLine(text);
         }
     }
 }
