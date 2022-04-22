@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Net;
-using System.Net.Http;
 using System.IO;
 using Newtonsoft.Json;
-using System.Resources;
+using MySql.Data.MySqlClient;
 
 namespace ExoHttpAPI
 {
     internal class Program
     {
+
         private static bool serverEnabled = false;
-        private static int serverPort = 8081;
+        private static int serverPort = 8080;
+        DatabaseInterface bdd = new DatabaseInterface();
+
         static void Main(string[] args)
         {
             Log("Bienvenue sur le serveur d'API de film OpenMovie.");
@@ -49,25 +51,91 @@ namespace ExoHttpAPI
         static void ExecuteRequest(HttpListenerContext conn)
         {
             string Route = conn.Request.RawUrl;
+            //Tester cette méthode pour décoder les caractères spéciaux tel que é, è, ç, ï, etc...
+            //string Route = System.Web.HttpUtility.UrlDecode(conn.Request.RawUrl, System.Text.Encoding.UTF8);
+            Route = Route.ToUpper();
 
-            if (conn.Request.RawUrl == "/")
-            {
+            if (conn.Request.RawUrl == "/") { //Route principale (index)
                 SendHtmlResponse(conn, "<html><body><h1>Projet Site de films</h1><h2><u>Matiere:</u> Service WEB: Communication et echange de donnees</h2><h2><u>Participants:</u> Francois SAURA et Loic LABAISSE</h2><h2><u>Objectifs:</u> Developper un site internet d informations cinematographique en utilisant l API de TheMovieDB</h2><h1 style='text-align: center;'>BIENVENUE SUR LE SERVEUR API (Backend)</h1><p style='text-align: center;'>Veuillez utiliser convenablement l API avec une URI valide.</p></body></html>");
                 return;
             }
 
             string[] Path = Route.Split("/");
-            if (Path[1] == "Films")
-            {
+
+            if (Path[1] == "FILMS") { //Route /FILMS
                 string jsonString = GetJsonApi();
                 SendJsonResponse(conn, jsonString);
-            } else if (Path[1] == "Login")
+
+            } else if (Path[1] == "LOGIN") { //Route /LOGIN
+
+                string Email = Path[2];
+                string Passhash = Path[3];
+
+                LoginResponse RepObj = new LoginResponse(Email, Passhash);
+
+                Console.WriteLine("Login de l'utilisateur : " + Email + " Hash de son mdp: " + Passhash);
+
+                String jsonRepString = JsonConvert.SerializeObject(RepObj);
+                if (RepObj.exist == true)
+                {
+                    SendJsonResponse(conn, jsonRepString, 200);
+                } else
+                {
+                    SendJsonResponse(conn, jsonRepString, 400); //L'utilisateur est introuvable ou le login/mdp ne correspond pas.
+                }
+
+
+            } else if (Path[1] == "REGISTER") { //Route /REGISTER
+                //     /!\ A TESTER
+                string first_name = Path[2];
+                string last_name = Path[3];
+                string email = Path[4];
+                string passhash = Path[5];
+
+                Console.WriteLine("Création de l'utilisateur " + first_name + " " + last_name + " avec l'email: " + email + " et le mot de passe hashé: " + passhash);
+                var repObj = new GetResponse();
+                
+                //Vérifie que l'email n'est pas déjà existant dans la base:
+                var bdd = new DatabaseInterface();
+                
+                MySqlDataReader userExistReader = bdd.SELECT("SELECT id FROM users WHERE email='" + email + "';");
+                if (userExistReader == null) {
+                    //SendStatutResponse(conn, 400); //Ancienne méthode ( /!\ tester la nouvelle avec l'envoi de repObj)
+                    repObj.statusCode = 400;
+                    repObj.comment = "Impossible de se connecter à la base de donnée pour vérifier si l'utilisateur à créer n'existe pas déjà";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), 400);
+                    return;
+                }
+                if (userExistReader.HasRows) {
+                    repObj.statusCode = 400;
+                    repObj.comment = "L'utilisateur existe déjà en base de donnée. Cette adresse e-mail est déjà utilisé par un autre utilisateur.";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), 400);
+                    userExistReader.Close();
+                    return;
+                }
+
+                //On insère le nouvel utilisateur dans la base de donnée:
+                bool insertResult = bdd.INSERT_INTO("INSERT INTO users (prenom, nom, email, password) VALUES ('" + first_name + "', '" + last_name + "', '" + email + "', '" + passhash + "');");
+
+                if (insertResult == true) { 
+                    SendStatutResponse(conn, 200);
+                    repObj.statusCode = 200;
+                    repObj.comment = "Utilisateur créer avec succès.";
+                    SendJsonResponse(conn, repObj.getJsonResponse());
+                    Console.WriteLine("L'utilisateur à bien été créer en base de donnée.");
+                } else {
+                    repObj.statusCode = 400;
+                    repObj.comment = "Impossible d'ajouter l'utilisateur dans la base de donnée.";
+                    SendStatutResponse(conn, 400);
+                    SendJsonResponse(conn, repObj.getJsonResponse(), 400);
+                    Console.WriteLine("Impossible d'effectuer une requête d'insertion en base de donnée pour ajouter l'utilisateur.");
+                }
+                
+            } 
+            
+            else
             {
-                string Username = Path[2];
-                SendHtmlResponse(conn, "Login de l'utilisateur : " + Username);
-            } else
-            {
-                SendHtmlResponse(conn, Route + "<br>la route spécifié n'est pas définie.");
+                SendHtmlResponse(conn, Route + "la route spécifié n'est pas définie.");
             }
 
 
@@ -77,6 +145,7 @@ namespace ExoHttpAPI
         {
             HttpListenerResponse rep = conn.Response;
             rep.ContentType = "text/html; charset=utf-8";
+            rep.AppendHeader("Access-Control-Allow-Origin", "*");
             rep.ContentEncoding = System.Text.Encoding.UTF8;
             byte[] htmlBytes = System.Text.Encoding.UTF8.GetBytes(html);
             rep.ContentLength64 = htmlBytes.Length;
@@ -85,7 +154,7 @@ namespace ExoHttpAPI
             outputStream.Close();
         }
 
-        static void SendJsonResponse(HttpListenerContext conn, string jsonString)
+        static void SendJsonResponse(HttpListenerContext conn, string jsonString, int statusCode = 200)
         {
             HttpListenerResponse rep = conn.Response;
             byte[] buffer = System.Text.Encoding.UTF8.GetBytes(jsonString); //Conversion du json qui va être retourné en binaire
@@ -95,23 +164,24 @@ namespace ExoHttpAPI
             rep.ContentType = "application/json";
             rep.ContentEncoding = System.Text.Encoding.UTF8;
             rep.AppendHeader("Access-Control-Allow-Origin", "*");
+            rep.StatusCode = statusCode;
 
             Stream outputStream = rep.OutputStream;
             outputStream.Write(buffer, 0, buffer.Length);
             outputStream.Close(); //Fermer le flux ici ?
         }
 
-        
-
-        static String getJson()
+        static void SendStatutResponse(HttpListenerContext conn, int statutCode)
         {
-            Personnage p1 = new Personnage();
-            p1.prenom = "François";
-            p1.nom = "SAURA";
-            p1.age = 21;
+            HttpListenerResponse rep = conn.Response;
+            rep.AppendHeader("Access-Control-Allow-Origin", "*");
+            conn.Response.StatusCode = statutCode;
 
-            var json = JsonConvert.SerializeObject(p1);
-            return json;
+            byte[] buffer = System.Text.Encoding.UTF8.GetBytes("REPONSE CODE " + statutCode);
+            Stream outputStream = rep.OutputStream;
+            outputStream.Write(buffer, 0, buffer.Length);
+
+            outputStream.Close(); //Peut-être que d'uniquement fermer le flux suffirait et permettrait de ne pas envoyer de data inutiles dans le flux pour rien.
         }
 
         static string GetJsonApi()
