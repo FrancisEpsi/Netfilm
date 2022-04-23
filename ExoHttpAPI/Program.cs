@@ -94,22 +94,23 @@ namespace ExoHttpAPI
 
 
             } else if (Path[1].ToUpper() == "REGISTER") { //Route /REGISTER
+                var repObj = new GetResponse();
 
                 if (Path.Length < 6)
                 {
-                    LoginResponse ErrorResponseObj = new LoginResponse();
-                    ErrorResponseObj.ErrorComment = "Mauvaise utilisation de l'API. Vérifiez votre route. Il doit y avoir au moins 3 autres slash après la route /REGISTER/ (Domain:Port/Login/first_name/last_name/email/passhash)";
-                    SendJsonResponse(conn, ErrorResponseObj.getJsonResponse(), 400);
+                    repObj.comment = "Mauvaise utilisation de l'API. Vérifiez votre route. Il doit y avoir au moins 3 autres slash après la route /REGISTER/ (Domain:Port/Login/first_name/last_name/email/passhash)";
+                    repObj.statusCode = 400;
+                    SendJsonResponse(conn, repObj.getJsonResponse(), repObj.statusCode);
                     return;
                 }
-                    //     /!\ A TESTER
-                    string first_name = Path[2];
+
+                string first_name = Path[2];
                 string last_name = Path[3];
                 string email = Path[4];
                 string passhash = Path[5];
 
                 Log("Demande de création de l'utilisateur " + first_name + " " + last_name + " avec l'email: " + email + " et le mot de passe hashé: " + passhash);
-                var repObj = new GetResponse();
+                
                 
                 //Vérifie que l'email n'est pas déjà existant dans la base:
                 var bdd = new DatabaseInterface();
@@ -151,18 +152,19 @@ namespace ExoHttpAPI
             
             else
             {
-                SendHtmlResponse(conn, Route + "la route spécifié n'est pas définie.");
+                SendHtmlResponse(conn, Route + " : la route spécifié n'est pas définie.", 400);
             }
 
 
         }
 
-        static void SendHtmlResponse(HttpListenerContext conn, string html)
+        static void SendHtmlResponse(HttpListenerContext conn, string html, int statusCode = 200)
         {
             HttpListenerResponse rep = conn.Response;
             rep.ContentType = "text/html; charset=utf-8";
             rep.AppendHeader("Access-Control-Allow-Origin", "*");
             rep.ContentEncoding = System.Text.Encoding.UTF8;
+            rep.StatusCode = statusCode;
             byte[] htmlBytes = System.Text.Encoding.UTF8.GetBytes(html);
             rep.ContentLength64 = htmlBytes.Length;
             Stream outputStream = rep.OutputStream;
