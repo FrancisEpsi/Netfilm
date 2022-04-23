@@ -50,27 +50,29 @@ namespace ExoHttpAPI
 
         static void ExecuteRequest(HttpListenerContext conn)
         {
-            string Route = conn.Request.RawUrl;
+            //string Route = conn.Request.RawUrl; //Ancienne méthode
+
             //Tester cette méthode pour décoder les caractères spéciaux tel que é, è, ç, ï, etc...
-            //string Route = System.Web.HttpUtility.UrlDecode(conn.Request.RawUrl, System.Text.Encoding.UTF8);
-            Route = Route.ToUpper();
+            string Route = System.Web.HttpUtility.UrlDecode(conn.Request.RawUrl, System.Text.Encoding.UTF8); //   /!\ A tester sur le front avec axios
 
             if (conn.Request.RawUrl == "/") { //Route principale (index)
                 SendHtmlResponse(conn, "<html><body><h1>Projet Site de films</h1><h2><u>Matiere:</u> Service WEB: Communication et echange de donnees</h2><h2><u>Participants:</u> Francois SAURA et Loic LABAISSE</h2><h2><u>Objectifs:</u> Developper un site internet d informations cinematographique en utilisant l API de TheMovieDB</h2><h1 style='text-align: center;'>BIENVENUE SUR LE SERVEUR API (Backend)</h1><p style='text-align: center;'>Veuillez utiliser convenablement l API avec une URI valide.</p></body></html>");
                 return;
             }
 
+
+
             string[] Path = Route.Split("/");
 
-            if (Path[1] == "FILMS") { //Route /FILMS
+            if (Path[1].ToUpper() == "FILMS") { //Route /FILMS
                 string jsonString = GetJsonApi();
                 SendJsonResponse(conn, jsonString);
 
-            } else if (Path[1] == "LOGIN") { //Route /LOGIN
-                if (Path.Length < 4) ///     /!\ A TESTER : Système de vérification de la route.
+            } else if (Path[1].ToUpper() == "LOGIN") { //Route /LOGIN
+                if (Path.Length < 4)
                 {
                     LoginResponse ErrorResponseObj = new LoginResponse();
-                    ErrorResponseObj.ErrorComment = "Mauvaise utilisation de l'API. Vérifiez votre route. Il doit y avoir au moins 1 autres slash après la route /Login/ (Domain:Port/Login/user/passhash)";
+                    ErrorResponseObj.ErrorComment = "Mauvaise utilisation de l'API. Vérifiez votre route. Il doit y avoir au moins 1 autres slash après la route /Login/ (Domain:Port/Login/email/passhash)";
                     SendJsonResponse(conn, ErrorResponseObj.getJsonResponse(), 400);
                     return;
                 }
@@ -91,14 +93,22 @@ namespace ExoHttpAPI
                 }
 
 
-            } else if (Path[1] == "REGISTER") { //Route /REGISTER
-                //     /!\ A TESTER
-                string first_name = Path[2];
+            } else if (Path[1].ToUpper() == "REGISTER") { //Route /REGISTER
+
+                if (Path.Length < 6)
+                {
+                    LoginResponse ErrorResponseObj = new LoginResponse();
+                    ErrorResponseObj.ErrorComment = "Mauvaise utilisation de l'API. Vérifiez votre route. Il doit y avoir au moins 3 autres slash après la route /REGISTER/ (Domain:Port/Login/first_name/last_name/email/passhash)";
+                    SendJsonResponse(conn, ErrorResponseObj.getJsonResponse(), 400);
+                    return;
+                }
+                    //     /!\ A TESTER
+                    string first_name = Path[2];
                 string last_name = Path[3];
                 string email = Path[4];
                 string passhash = Path[5];
 
-                Log("Création de l'utilisateur " + first_name + " " + last_name + " avec l'email: " + email + " et le mot de passe hashé: " + passhash);
+                Log("Demande de création de l'utilisateur " + first_name + " " + last_name + " avec l'email: " + email + " et le mot de passe hashé: " + passhash);
                 var repObj = new GetResponse();
                 
                 //Vérifie que l'email n'est pas déjà existant dans la base:
@@ -124,7 +134,7 @@ namespace ExoHttpAPI
                 bool insertResult = bdd.INSERT_INTO("INSERT INTO users (prenom, nom, email, password) VALUES ('" + first_name + "', '" + last_name + "', '" + email + "', '" + passhash + "');");
 
                 if (insertResult == true) { 
-                    SendStatutResponse(conn, 200);
+                    //SendStatutResponse(conn, 200);
                     repObj.statusCode = 200;
                     repObj.comment = "Utilisateur créer avec succès.";
                     SendJsonResponse(conn, repObj.getJsonResponse());
@@ -132,7 +142,7 @@ namespace ExoHttpAPI
                 } else {
                     repObj.statusCode = 400;
                     repObj.comment = "Impossible d'ajouter l'utilisateur dans la base de donnée.";
-                    SendStatutResponse(conn, 400);
+                    //SendStatutResponse(conn, 400);
                     SendJsonResponse(conn, repObj.getJsonResponse(), 400);
                     Log("Impossible d'effectuer une requête d'insertion en base de donnée pour ajouter l'utilisateur.");
                 }
