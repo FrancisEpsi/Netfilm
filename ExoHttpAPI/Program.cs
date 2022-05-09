@@ -15,7 +15,7 @@ namespace ExoHttpAPI
 
         static void Main(string[] args)
         {
-            Log("Bienvenue sur le serveur d'API de film OpenMovie.");
+            Log("Bienvenue sur le serveur d'API de film NetFilm.");
             Log("Projet réalisé par François SAURA et Loïc LABAISSE");
             Log("");
             serverEnabled = true;
