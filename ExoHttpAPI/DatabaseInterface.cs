@@ -9,8 +9,8 @@ namespace ExoHttpAPI
 {
     public class DatabaseInterface
     {
-        private const string mysql_host = "127.0.0.1";
-        private const string mysql_port = "3306";
+        private const string mysql_host = "193.250.153.72";//"127.0.0.1";
+        private const string mysql_port = "3339";//"3306";
         private const string mysql_database = "netfilm";
         private const string mysql_user = "backend";
         private const string mysql_password = "dotnet33";

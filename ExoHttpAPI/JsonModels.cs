@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ExoHttpAPI
 {
@@ -77,6 +80,59 @@ namespace ExoHttpAPI
         public bool user_liked;
         public bool user_loved;
         public bool moviedb_json;
+    }
+
+    public class DiscoverResponse
+    {
+        public List<Film> films = new List<Film>();
+
+        public string Make(int userID = 10)
+        {
+            //On récupère la liste des ID de film que l'utilisateur à aimer:
+            var bdd = new DatabaseInterface();
+            var userLikeReq = "SELECT * FROM likes WHERE user_id='"+userID+"';";
+            MySqlDataReader userLikeReader = bdd.SELECT(userLikeReq);
+            var FilmIdsLiked = new List<int>();
+            while (userLikeReader.Read())
+            {
+                FilmIdsLiked.Add(userLikeReader.GetInt32("film_id"));
+            }
+
+            //On fait l'appel à l'API de The Movie Database pour obtenir la page discover (pleins de films)
+            string TMDB_Json = Get_TMDB_Discover_Json();
+            if (TMDB_Json == null) { return null; }
+
+            JObject TMDB_Obj = JObject.Parse(TMDB_Json);
+            JToken TMDB_Films = TMDB_Obj["results"];
+            foreach (JToken TMDB_Film in TMDB_Films)
+            {
+                //Pour chaque film dans la réponse de l'API de TheMovieDB on créer notre propre objet film ou on y complète ses propriétées:
+                Film film = new Film();
+                film.id = (int)TMDB_Film["id"];
+                film.titre = (string)TMDB_Film["title"];
+                film.image_url = (string)TMDB_Film["poster_path"];
+                film.synopsis = (string)TMDB_Film["overview"];
+                if (FilmIdsLiked.Contains(film.id)) { film.user_liked = true; } else { film.user_liked = false; }
+                //Puis on ajoute ce nouvel objet film à notre liste de film:
+                this.films.Add(film);
+            }
+
+
+            //Console.WriteLine(JsonConvert.SerializeObject(this));
+            return JsonConvert.SerializeObject(this);
+        }
+
+        public static string Get_TMDB_Discover_Json()
+        {
+            WebRequest request = WebRequest.Create("http://api.themoviedb.org/3/discover/movie?api_key=53583d53037bff6ba56435db8aca274e&certification_country=US&certification.lte=G&sort_by=popularity.desc&language=fr-FR&page=2");
+            WebResponse rep = request.GetResponse();
+
+            Stream repStream = rep.GetResponseStream();
+            StreamReader sr = new StreamReader(repStream);
+            string json = sr.ReadToEnd();
+            sr.Close();
+            return json;
+        }
     }
 
     /// <summary>

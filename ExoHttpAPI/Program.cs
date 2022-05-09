@@ -65,8 +65,41 @@ namespace ExoHttpAPI
             string[] Path = Route.Split("/");
 
             if (Path[1].ToUpper() == "FILMS") { //Route /FILMS
-                string jsonString = GetJsonApi();
-                SendJsonResponse(conn, jsonString);
+                if (Path.Length == 2)
+                {
+                    string jsonString = GetJsonApi();
+                    SendJsonResponse(conn, jsonString);
+                }
+                else if (Path.Length >= 3)
+                {
+                    string userID = Path[2];
+                    int userID_int = -1;
+                    try
+                    {
+                        userID_int = Convert.ToInt32(userID);
+                    } catch
+                    {
+                        var ErrorJson = new GetResponse();
+                        ErrorJson.comment = "L'ID de l'utilisateur fournie dans la route n'est pas un entier." + Environment.NewLine + "Voici la route incorrecte que vous avez entrer:" + Environment.NewLine + Route;
+                        ErrorJson.statusCode = 400;
+                        SendJsonResponse(conn, ErrorJson.getJsonResponse(), ErrorJson.statusCode);
+                        return;
+                    }
+                    var test = new DiscoverResponse();
+                    string jsonRep = test.Make(Convert.ToInt32(userID_int));
+                    if (jsonRep == null)
+                    {
+                        SendJsonResponse(conn, jsonRep, 500);
+                    } else
+                    {
+                        SendJsonResponse(conn, jsonRep, 200);
+                    }
+
+                }
+
+
+
+
 
             } else if (Path[1].ToUpper() == "LOGIN") { //Route /LOGIN
                 if (Path.Length < 4)
@@ -110,11 +143,11 @@ namespace ExoHttpAPI
                 string passhash = Path[5];
 
                 Log("Demande de création de l'utilisateur " + first_name + " " + last_name + " avec l'email: " + email + " et le mot de passe hashé: " + passhash);
-                
-                
+
+
                 //Vérifie que l'email n'est pas déjà existant dans la base:
                 var bdd = new DatabaseInterface();
-                
+
                 MySqlDataReader userExistReader = bdd.SELECT("SELECT id FROM users WHERE email='" + email + "';");
                 if (userExistReader == null) {
                     //SendStatutResponse(conn, 400); //Ancienne méthode ( /!\ tester la nouvelle avec l'envoi de repObj)
@@ -134,7 +167,7 @@ namespace ExoHttpAPI
                 //On insère le nouvel utilisateur dans la base de donnée:
                 bool insertResult = bdd.INSERT_INTO("INSERT INTO users (prenom, nom, email, password) VALUES ('" + first_name + "', '" + last_name + "', '" + email + "', '" + passhash + "');");
 
-                if (insertResult == true) { 
+                if (insertResult == true) {
                     //SendStatutResponse(conn, 200);
                     repObj.statusCode = 200;
                     repObj.comment = "Utilisateur créer avec succès.";
@@ -147,11 +180,148 @@ namespace ExoHttpAPI
                     SendJsonResponse(conn, repObj.getJsonResponse(), 400);
                     Log("Impossible d'effectuer une requête d'insertion en base de donnée pour ajouter l'utilisateur.");
                 }
-                
-            } 
-            
-            else
+
+            } else if (Path[1].ToUpper() == "SETLIKE")
             {
+                string userID = Path[2];
+                string filmID = Path[3];
+
+                var bdd = new DatabaseInterface();
+                string select_req = "SELECT id FROM likes WHERE user_id = '" + userID + "' AND film_id = '" + filmID + "'";
+                MySqlDataReader likeExistReader = bdd.SELECT(select_req);
+                bool alreadyLiked = false;
+                alreadyLiked = likeExistReader.HasRows;
+                if (alreadyLiked == true)
+                {
+                    var repObj = new GetResponse();
+                    repObj.statusCode=200;
+                    repObj.comment = "L'utilisateur à déjà aimer ce film.";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), repObj.statusCode);
+                    return;
+                }
+                string insert_req = "INSERT INTO likes (user_id, film_id) VALUES ('" + userID + "', '" + filmID + "');";
+                bool likeConfirmation = bdd.INSERT_INTO(insert_req);
+                if (likeConfirmation)
+                {
+                    var repObj = new GetResponse();
+                    repObj.statusCode=200;
+                    repObj.comment = "La mention j'aime à été ajoutée avec succès !";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), repObj.statusCode);
+                    return;
+                } else
+                {
+                    var repObj = new GetResponse();
+                    repObj.statusCode=400;
+                    repObj.comment = "Une erreur est surveue durant l'insertion de la mention j'aime dans la base de donnée.";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), repObj.statusCode);
+                    return;
+                }
+
+
+            } else if (Path[1].ToUpper() == "UNSETLIKE") {
+                string userID = Path[2];
+                string filmID = Path[3];
+                var bdd = new DatabaseInterface();
+                string delete_req = "DELETE FROM likes WHERE user_id = '" + userID + "' AND film_id = '" + filmID + "';";
+                if (bdd.INSERT_INTO(delete_req))
+                {
+                    var repObj = new GetResponse();
+                    repObj.statusCode=200;
+                    repObj.comment = "Le mention j'aime à bien été retirée.";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), repObj.statusCode);
+                    return;
+                } else
+                {
+                    var repObj = new GetResponse();
+                    repObj.statusCode=400;
+                    repObj.comment = "La requête de suppression de la mention j'aime ne s'est pas déroulé correctement.";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), repObj.statusCode);
+                    return;
+                }
+
+            } else if (Path[1].ToUpper() == "LIKE")
+            {
+
+                var userID = Path[2];
+                string filmID = Path[3];
+                string liked = Path[4];
+
+                //Console.WriteLine("userID: '"+userID+"', filmID: '"+filmID+"', liked: '"+liked+"'");
+
+                if (liked.ToUpper() == "TRUE")
+                {
+                    var bdd = new DatabaseInterface();
+                    string select_req = "SELECT id FROM likes WHERE user_id = '" + userID + "' AND film_id = '" + filmID + "'";
+                    MySqlDataReader likeExistReader = bdd.SELECT(select_req);
+                    bool alreadyLiked = false;
+                    alreadyLiked = likeExistReader.HasRows;
+                    if (alreadyLiked == true)
+                    {
+                        var discoverResponse = new DiscoverResponse();
+                        string jsonRep = discoverResponse.Make(Convert.ToInt32(userID));
+                        if (jsonRep == null)
+                        {
+                            SendJsonResponse(conn, jsonRep, 500);
+                        }
+                        else
+                        {
+                            SendJsonResponse(conn, jsonRep, 200);
+                        }
+                        return;
+                    }
+                    string insert_req = "INSERT INTO likes (user_id, film_id) VALUES ('" + userID + "', '" + filmID + "');";
+                    bool likeConfirmation = bdd.INSERT_INTO(insert_req);
+                    if (likeConfirmation)
+                    {
+                        var discoverResponse = new DiscoverResponse();
+                        string jsonRep = discoverResponse.Make(Convert.ToInt32(userID));
+                        if (jsonRep == null)
+                        {
+                            SendJsonResponse(conn, jsonRep, 500);
+                        }
+                        else
+                        {
+                            SendJsonResponse(conn, jsonRep, 200);
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        var repObj4 = new GetResponse();
+                        repObj4.statusCode=500;
+                        repObj4.comment = "Une erreur est surveue durant l'insertion de la mention j'aime dans la base de donnée.";
+                        SendJsonResponse(conn, repObj4.getJsonResponse(), repObj4.statusCode);
+                        return;
+                    }
+                } else if (liked.ToUpper() == "FALSE")
+                {
+                    var bdd = new DatabaseInterface();
+                    string delete_req = "DELETE FROM likes WHERE user_id = '" + userID + "' AND film_id = '" + filmID + "';";
+                    if (bdd.INSERT_INTO(delete_req))
+                    {
+                        var discoverResponse = new DiscoverResponse();
+                        string jsonRep = discoverResponse.Make(Convert.ToInt32(userID));
+                        if (jsonRep == null)
+                        {
+                            SendJsonResponse(conn, jsonRep, 500);
+                        }
+                        else
+                        {
+                            SendJsonResponse(conn, jsonRep, 200);
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        var repObj6 = new GetResponse();
+                        repObj6.statusCode=500;
+                        repObj6.comment = "La requête de suppression de la mention j'aime ne s'est pas déroulé correctement.";
+                        SendJsonResponse(conn, repObj6.getJsonResponse(), repObj6.statusCode);
+                        return;
+                    }
+                }
+                
+            } else {
                 SendHtmlResponse(conn, Route + " : la route spécifié n'est pas définie.", 400);
             }
 
@@ -172,7 +342,7 @@ namespace ExoHttpAPI
             outputStream.Close();
         }
 
-        static void SendJsonResponse(HttpListenerContext conn, string jsonString, int statusCode = 200)
+        static bool SendJsonResponse(HttpListenerContext conn, string jsonString, int statusCode = 200)
         {
             HttpListenerResponse rep = conn.Response;
             byte[] buffer = System.Text.Encoding.UTF8.GetBytes(jsonString); //Conversion du json qui va être retourné en binaire
@@ -183,10 +353,19 @@ namespace ExoHttpAPI
             rep.ContentEncoding = System.Text.Encoding.UTF8;
             rep.AppendHeader("Access-Control-Allow-Origin", "*");
             rep.StatusCode = statusCode;
+            
+            try
+            {
+                Stream outputStream = rep.OutputStream;
+                outputStream.Write(buffer, 0, buffer.Length);
+                outputStream.Close(); //Fermer le flux ici ? C'est surement en le fermant que le client peut faire son traitement.
+                return true;
+            } catch
+            {
+                Console.WriteLine(conn.Request.RemoteEndPoint.ToString()+" : Impossible de retourner la réponse JSON "+ statusCode + " car il y a un problème avec le flux sortant.");
+                return false;
+            }
 
-            Stream outputStream = rep.OutputStream;
-            outputStream.Write(buffer, 0, buffer.Length);
-            outputStream.Close(); //Fermer le flux ici ?
         }
 
         static void SendStatutResponse(HttpListenerContext conn, int statutCode)
