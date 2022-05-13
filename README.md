@@ -21,27 +21,32 @@ Vous vous trouverez alors avec un web server de développement hébergé sur vot
 ℹ️ Cette étape est uniquement utile dans le cas ou nous n'hébergeons plus l'API ainsi que la base de donnée.
 Il sera alors nécessaire d'éxécuter l'API (précompilée) puis créer une base de donnée MySQL locale avec la même structure.
 
+ℹ️ Si vous n'êtes pas sous Windows, nous vous recommandons d'installer une VM Windows pour éxécuter l'API (plus simple).
+
+⚠️ L'API est configurée pour se connecter à une base de donnée MySQL locale sur le port 21832 nommée "netfilm" avec l'utilisateur "backend" et le mot de passe "dotnet33"
+
+⚠️ Si jamais nous n'hébergont plus l'API et la base de donnée lors de vos test, veuillez recréer la base de donnée avec les scripts SQL fournis puis ajouter manuellement l'utilisateur "backend" avec le mot de passe "dotnet33" avec tous les droits sur la base "netfilm".
+La base de donnée devra être sur la même machine que l'API, en écoute sur le port 21832.
+
 ### Sous windows (version déjà compilée):
 
 Exécuter en tant qu'administrateur:
 ```
 $ ExoHttpAPI\bin\Debug\net5.0\ExoHttpAPI.exe
 ```
-ℹ️ Si vous n'êtes pas sous Windows, je vous recommande d'installer une VM pour éxécuter l'API.
-ℹ️ Sachez qu'il est également possible de compiler le projet pour Linux x86 mais pour cela il faudra convertir le projet sous le framework .NET CORE. Il existe des tutoriels prévu à cet effet.
-
 L'API est à l'écoute de requête sous le port 8080
 
-⚠️ Information ⚠️
+### Sous Linux (version à compiler)
 
-L'API est configurée pour se connecter à une base de donnée MySQL locale sur le port 21832 nommée "netfilm" avec l'utilisateur "backend" et le mot de passe "dotnet33"
-Si jamais nous n'hébergont plus l'API et la base de donnée lors de vos test, veuillez recréer la base de donnée avec les scripts SQL fournis puis ajouter manuellement l'utilisateur "backend" avec le mot de passe "dotnet33" avec tous les droits sur la base "netfilm".
-La base de donnée devra être sur la même machine que l'API, en écoute sur le port 21832.
+Il est également possible de compiler le projet pour Linux x86 mais pour cela il faudra convertir le projet sous le framework .NET CORE. Il existe des tutoriels prévu à cet effet.
+
 
 ## Base de donnée
 ℹ️ Cette étape est uniquement utile dans le cas ou nous n'hébergeons plus l'API ainsi que la base de donnée.
 
+
 Veuillez lire le README.md dans Database/README.md
+
 Vous trouverez le script pour la création des tables et des données à l'emplacement suivant: Database/dump-netfilm-202205131727.sql
 
 ***
