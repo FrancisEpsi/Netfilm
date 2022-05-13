@@ -1,0 +1,44 @@
+.register{
+    height: 100vh;
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+}
+.register_title{
+    color: red;
+    font-size: 50px;
+}
+.register_content{
+    width: 30%;
+    height: 500px;
+    background-color: white;
+    border-radius: 5px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+}
+.register_form{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 85%;
+    height: 400px;
+}
+.register_label{
+    font-size: 1.3rem;
+}
+.register_input {
+    height: 40px;
+    
+}
+.register_button{
+    border: none;
+    background: red;
+    width: 70%;
+    height: 40px;
+    border-radius: 5px;
+    color: white;
+    font-size: 1.3rem;
+}
