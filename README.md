@@ -5,7 +5,7 @@ Projet pour l'EPSI réalisé par François SAURA et Loïc LABAISSE
 
 ## Installation REACT
 
-ℹ️ Vous devez mettre un fichier .env avec pour attribut REACT_APP_API_MOVIE=http://netfilm33.duckdns.org:8080/
+ℹ️ Vous devez mettre un fichier .env avec pour attribut REACT_APP_API_MOVIE=http://netfilm33.duckdns.org:8080/ si l'API est encore héberger par nos moyens sinon mettre REACT_APP_API_MOVIE=http://127.0.0.1:8080/
 ```
 $ git clone https://github.com/FrancisEpsi/BackendMovieWebsite.git
 $ cd Front/front
