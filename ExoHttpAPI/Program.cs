@@ -29,7 +29,6 @@ namespace ExoHttpAPI
         {
             var listenner = new HttpListener();
             listenner.Prefixes.Add("http://*:" + serverPort + "/");
-            //listenner.AuthenticationSchemes = AuthenticationSchemes.Basic; //A TESTER
             
             try {
                 listenner.Start();
@@ -44,24 +43,17 @@ namespace ExoHttpAPI
             while (serverEnabled)
             {
                 HttpListenerContext conn = listenner.GetContext();
-                string body = null;
-                StreamReader sr = new StreamReader(conn.Request.InputStream);
-                body = sr.ReadToEnd();
-                sr.Close();
-                Log("Requête reçu par " + conn.Request.RemoteEndPoint.ToString() + "(" + conn.Request.RawUrl + ") body = '" + body + "'");
 
-                //Log("Requête reçu par " + conn.Request.RemoteEndPoint.ToString() + "(" + conn.Request.RawUrl + ")");
-                //ExecuteRequest(conn);
-                ExecuteRequest(conn, body);
+                Log("Requête reçu par " + conn.Request.RemoteEndPoint.ToString() + "(" + conn.Request.RawUrl + ")");
+                ExecuteRequest(conn);
             }
 
             listenner.Stop();
 
         }
 
-        static void ExecuteRequest(HttpListenerContext conn, string body = "")
+        static void ExecuteRequest(HttpListenerContext conn)
         {
-            //string Route = conn.Request.RawUrl; //Ancienne méthode
 
             //Tester cette méthode pour décoder les caractères spéciaux tel que é, è, ç, ï, etc...
             string Route = System.Web.HttpUtility.UrlDecode(conn.Request.RawUrl, System.Text.Encoding.UTF8); //   /!\ A tester sur le front avec axios
@@ -74,18 +66,18 @@ namespace ExoHttpAPI
             string[] Path = Route.Split("/");
 
             //Récupération du body de la requête:
-            //string body = null;
-            //StreamReader sr;
-            //try
-            //{
-            //    sr = new StreamReader(conn.Request.InputStream);
-            //    body = sr.ReadToEnd();
-            //    sr.Close();
-            //}
-            //catch
-            //{
-            //    Log("Le body de la requête " + Route + " n'a pas pu être récupéré !");
-            //}
+            string body = null;
+            StreamReader sr;
+            try
+            {
+                sr = new StreamReader(conn.Request.InputStream);
+                body = sr.ReadToEnd();
+                sr.Close();
+            }
+            catch
+            {
+                Log("Le body de la requête " + Route + " n'a pas pu être récupéré !");
+            }
 
             if (Path[1].ToUpper() == "FILMS") { //Route /FILMS
                 if (Path.Length == 2)
@@ -168,6 +160,38 @@ namespace ExoHttpAPI
 
                 Log("Demande de création de l'utilisateur " + first_name + " " + last_name + " avec l'email: " + email + " et le mot de passe hashé: " + passhash);
 
+                //Vérfie que l'email et le passhash ne sont pas null:
+                if (email == null)
+                {
+                    repObj.statusCode = 400;
+                    repObj.comment = "Aucune adresse e-mail n'a été renseignée";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), 400);
+                    return;
+                }
+
+                if (email == "")
+                {
+                    repObj.statusCode = 400;
+                    repObj.comment = "Aucune adresse e-mail n'a été renseignée";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), 400);
+                    return;
+                }
+
+                if (passhash == null)
+                {
+                    repObj.statusCode = 400;
+                    repObj.comment = "Aucune mot de passe n'a été renseignée";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), 400);
+                    return;
+                }
+
+                if (passhash == "")
+                {
+                    repObj.statusCode = 400;
+                    repObj.comment = "Aucune mot de passe n'a été renseignée";
+                    SendJsonResponse(conn, repObj.getJsonResponse(), 400);
+                    return;
+                }
 
                 //Vérifie que l'email n'est pas déjà existant dans la base:
                 var bdd = new DatabaseInterface();
