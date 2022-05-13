@@ -1,4 +1,4 @@
-# API FILM
+# NET FILM
 Projet pour l'EPSI réalisé par François SAURA et Loïc LABAISSE
 
 ⚠️ Pour que vous puissez tester notre travail, nous avons choisi d'héberger la base de donnée et l'API PENDANT 1 SEMAINE SEULEMENT. ⚠️
