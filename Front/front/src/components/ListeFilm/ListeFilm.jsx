@@ -17,31 +17,6 @@ const ListeFilm = () => {
       .catch((err) => console.error(err));
   }, [user.id]);
 
-  // const handleLike = async (d, index) => {
-  //   const array = dataMovie[index].user_liked;
-  //   if (array === true) {
-  //     axios
-  //       .get(`${process.env.REACT_APP_API_MOVIE}/UNSETLIKE/${user.id}/${d}`)
-  //       .then((res) => setDataMovie(res.data.films));
-  //   }
-  //   if (array === false) {
-  //     axios
-  //       .get(`${process.env.REACT_APP_API_MOVIE}/SETLIKE/${user.id}/${d}`)
-  //       .then((res) => setDataMovie(res.data.films));
-  //   }
-  //   console.log(dataMovie);
-  //   // await axios
-  //   //   .get(`${process.env.REACT_APP_API_MOVIE}/like/${user.id}/${d}/${like}`)
-  //   //   .then((res) => {
-  //   //     if (res.status === 200) {
-  //   //      window.location.reload()
-  //   //     }
-  //   //   })
-  //   //   .catch((err) => console.log(err));
-  // };
-
-  /* C LA FRANCOIS LA FONCTION EN DESSOUS AVEC LE BOUTTON OK DANS LE HTML*/
-
   const handleLike = (d, index, user_liked) => {
     axios
       .get(`${process.env.REACT_APP_API_MOVIE}/SETLIKE/${user.id}/${d}`)
@@ -56,7 +31,6 @@ const ListeFilm = () => {
     .catch((err) => console.error(err));
   }
 
-  console.log(dataMovie);
   return (
     <div className="listefilm">
       <ul className="listefilm_list">

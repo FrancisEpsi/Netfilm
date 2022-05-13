@@ -23,7 +23,6 @@ const Register = () => {
     }
   };
 
-  console.log(register);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -32,7 +31,6 @@ const Register = () => {
         `${process.env.REACT_APP_API_MOVIE}/register/${register.first_name}/${register.last_name}/${register.email}/${register.password}`
       )
       .then((res) => {
-        console.log(res.status);
        if(res.status === 200){
          navigate("/")
        }
