@@ -27,6 +27,8 @@ Exécuter en tant qu'administrateur:
 ```
 $ ExoHttpAPI\bin\Debug\net5.0\ExoHttpAPI.exe
 ```
+ℹ️ Si vous n'êtes pas sous Windows, je vous recommande d'installer une VM pour éxécuter l'API.
+ℹ️ Sachez qu'il est également possible de compiler le projet pour Linux x86 mais pour cela il faudra convertir le projet sous le framework .NET CORE. Il existe des tutoriels prévu à cet effet.
 
 L'API est à l'écoute de requête sous le port 8080
 
