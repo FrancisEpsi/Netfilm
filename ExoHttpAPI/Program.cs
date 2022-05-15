@@ -13,7 +13,7 @@ namespace ExoHttpAPI
         private static bool serverEnabled = false;
         private static int serverPort = 8080;
         private static string TMDB_Film_List;
-        public static readonly string TMDB_API_KEY = "53583d53037bff6ba56435db8aca274e"; //Spécifier ici votre clé d'API de TheMovieDatabase
+        public static readonly string TMDB_API_KEY = "ENTER_API_KEY_HERE"; //Spécifier ici votre clé d'API de TheMovieDatabase
         DatabaseInterface bdd = new DatabaseInterface();
 
         static void Main(string[] args)
