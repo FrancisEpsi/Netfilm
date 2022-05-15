@@ -7,12 +7,13 @@ using Newtonsoft.Json.Linq;
 
 namespace ExoHttpAPI
 {
-    internal class Program
+    public class Program
     {
 
         private static bool serverEnabled = false;
         private static int serverPort = 8080;
         private static string TMDB_Film_List;
+        public static readonly string TMDB_API_KEY = "53583d53037bff6ba56435db8aca274e"; //Spécifier ici votre clé d'API de TheMovieDatabase
         DatabaseInterface bdd = new DatabaseInterface();
 
         static void Main(string[] args)
@@ -20,11 +21,14 @@ namespace ExoHttpAPI
             Log("Bienvenue sur le serveur d'API de film NetFilm.");
             Log("Projet réalisé par François SAURA et Loïc LABAISSE");
             Log("");
-            TMDB_Film_List = GetJsonApi();
-            serverEnabled = true;
+            TMDB_Film_List = GetJsonApi(); //On fait l'appel à l'API de TheMovieDB qu'une seule fois pour récupérer une liste de film
+            serverEnabled = true; //C'était prévu pour du multi threading afin de pouvoir arrêter le listenner depuis le thread principal mais finalement abondonné
             ReadRequest();
         }
 
+        /// <summary>
+        /// Met l'HTTP Listenner en mode écoute puis accepte les connexions entrantes
+        /// </summary>
         static void ReadRequest()
         {
             var listenner = new HttpListener();
@@ -52,16 +56,15 @@ namespace ExoHttpAPI
 
         }
 
+        /// <summary>
+        /// Une fois une connexion entrante accepté, cette méthode va effectuer le traitement de la requête
+        /// </summary>
+        /// <param name="conn">La connexion cliente entrante</param>
         static void ExecuteRequest(HttpListenerContext conn)
         {
 
-            //Tester cette méthode pour décoder les caractères spéciaux tel que é, è, ç, ï, etc...
-            string Route = System.Web.HttpUtility.UrlDecode(conn.Request.RawUrl, System.Text.Encoding.UTF8); //   /!\ A tester sur le front avec axios
-
-            if (conn.Request.RawUrl == "/") { //Route principale (index)
-                SendHtmlResponse(conn, "<html><body><h1>Projet Site de films</h1><h2><u>Matiere:</u> Service WEB: Communication et echange de donnees</h2><h2><u>Participants:</u> Francois SAURA et Loic LABAISSE</h2><h2><u>Objectifs:</u> Developper un site internet d informations cinematographique en utilisant l API de TheMovieDB</h2><h1 style='text-align: center;'>BIENVENUE SUR LE SERVEUR API (Backend)</h1><p style='text-align: center;'>Veuillez utiliser convenablement l API avec une URI valide.</p></body></html>");
-                return;
-            }
+            //Méthode pour décoder les caractères spéciaux issu de l'URI (tel que é, è, ç, ï, etc)...
+            string Route = System.Web.HttpUtility.UrlDecode(conn.Request.RawUrl, System.Text.Encoding.UTF8);
 
             string[] Path = Route.Split("/");
 
@@ -79,14 +82,17 @@ namespace ExoHttpAPI
                 Log("Le body de la requête " + Route + " n'a pas pu être récupéré !");
             }
 
+            if (conn.Request.RawUrl == "/") { //Route principale (index)
+                SendHtmlResponse(conn, "<html><body><h1>Projet Site de films</h1><h2><u>Matiere:</u> Service WEB: Communication et echange de donnees</h2><h2><u>Participants:</u> Francois SAURA et Loic LABAISSE</h2><h2><u>Objectifs:</u> Developper un site internet d informations cinematographique en utilisant l API de TheMovieDB</h2><h1 style='text-align: center;'>BIENVENUE SUR LE SERVEUR API (Backend)</h1><p style='text-align: center;'>Veuillez utiliser convenablement l API avec une URI valide.</p></body></html>");
+                return;
+            }
+
             if (Path[1].ToUpper() == "FILMS") { //Route /FILMS
-                if (Path.Length == 2)
+                if (Path.Length == 2) //Ancienne méthode
                 {
-                    //string jsonString = GetJsonApi();
-                    //SendJsonResponse(conn, jsonString);
                     SendJsonResponse(conn, TMDB_Film_List);
                 }
-                else if (Path.Length >= 3)
+                else if (Path.Length >= 3) //Route /FILMS/<UserID>
                 {
                     string userID = Path[2];
                     int userID_int = -1;
@@ -115,8 +121,6 @@ namespace ExoHttpAPI
 
                 }
 
-
-
             } else if (Path[1].ToUpper() == "LOGIN") { //Route /LOGIN
                 if (Path.Length < 4)
                 {
@@ -137,7 +141,7 @@ namespace ExoHttpAPI
                     Log("Utilisateur " + RepObj.first_name + " " + RepObj.last_name + " Authentifié avec succès !");
                 } else
                 {
-                    SendJsonResponse(conn, jsonRepString, 400); //L'utilisateur est introuvable ou le login/mdp ne correspond pas.
+                    SendJsonResponse(conn, jsonRepString, 400);
                     Log("Tentative d'identification de l'utilisateur " + Email + " échouée.");
                 }
 
@@ -160,7 +164,7 @@ namespace ExoHttpAPI
 
                 Log("Demande de création de l'utilisateur " + first_name + " " + last_name + " avec l'email: " + email + " et le mot de passe hashé: " + passhash);
 
-                //Vérfie que l'email et le passhash ne sont pas null:
+                //Vérfie que l'email et/ou le passhash ne sont pas null:
                 if (email == null)
                 {
                     repObj.statusCode = 400;
@@ -198,7 +202,7 @@ namespace ExoHttpAPI
 
                 MySqlDataReader userExistReader = bdd.SELECT("SELECT id FROM users WHERE email='" + email + "';");
                 if (userExistReader == null) {
-                    //SendStatutResponse(conn, 400); //Ancienne méthode ( /!\ tester la nouvelle avec l'envoi de repObj)
+                    //SendStatutResponse(conn, 400); //Ancienne méthode sans l'envoi d'un JSON en réponse.
                     repObj.statusCode = 400;
                     repObj.comment = "Impossible de se connecter à la base de donnée pour vérifier si l'utilisateur à créer n'existe pas déjà";
                     SendJsonResponse(conn, repObj.getJsonResponse(), 400);
@@ -213,10 +217,9 @@ namespace ExoHttpAPI
                 }
 
                 //On insère le nouvel utilisateur dans la base de donnée:
-                bool insertResult = bdd.INSERT_INTO("INSERT INTO users (prenom, nom, email, password) VALUES ('" + first_name + "', '" + last_name + "', '" + email + "', '" + passhash + "');");
+                bool insertResult = bdd.EXECUTE_REQUEST("INSERT INTO users (prenom, nom, email, password) VALUES ('" + first_name + "', '" + last_name + "', '" + email + "', '" + passhash + "');");
 
                 if (insertResult == true) {
-                    //SendStatutResponse(conn, 200);
                     repObj.statusCode = 200;
                     repObj.comment = "Utilisateur créer avec succès.";
                     SendJsonResponse(conn, repObj.getJsonResponse());
@@ -224,7 +227,6 @@ namespace ExoHttpAPI
                 } else {
                     repObj.statusCode = 400;
                     repObj.comment = "Impossible d'ajouter l'utilisateur dans la base de donnée.";
-                    //SendStatutResponse(conn, 400);
                     SendJsonResponse(conn, repObj.getJsonResponse(), 400);
                     Log("Impossible d'effectuer une requête d'insertion en base de donnée pour ajouter l'utilisateur.");
                 }
@@ -258,14 +260,9 @@ namespace ExoHttpAPI
                     return;
                 }
                 string insert_req = "INSERT INTO likes (user_id, film_id) VALUES ('" + userID + "', '" + filmID + "');";
-                bool likeConfirmation = bdd.INSERT_INTO(insert_req);
+                bool likeConfirmation = bdd.EXECUTE_REQUEST(insert_req);
                 if (likeConfirmation)
                 {
-                    //var repObj = new GetResponse();
-                    //repObj.statusCode=200;
-                    //repObj.comment = "La mention j'aime à été ajoutée avec succès !";
-                    //SendJsonResponse(conn, repObj.getJsonResponse(), repObj.statusCode);
-                    //return;
 
                     //Loic veux que je lui retourne le JSON avec le like updaté (pour lui éviter de refaire un /FILMS/<userID>)
                     var movieResponse = new DiscoverResponse();
@@ -300,7 +297,7 @@ namespace ExoHttpAPI
                 catch
                 {
                     var ErrorJson = new GetResponse();
-                    ErrorJson.comment = "L'ID de l'utilisateur fournie dans la route n'est pas un entier." + Environment.NewLine + "Voici la route incorrecte que vous avez entrer:" + Environment.NewLine + Route;
+                    ErrorJson.comment = "L'ID de l'utilisateur fournie dans la route n'est pas un nombre entier." + Environment.NewLine + "Voici la route incorrecte que vous avez entrer:" + Environment.NewLine + Route;
                     ErrorJson.statusCode = 400;
                     SendJsonResponse(conn, ErrorJson.getJsonResponse(), ErrorJson.statusCode);
                     return;
@@ -309,13 +306,8 @@ namespace ExoHttpAPI
 
                 var bdd = new DatabaseInterface();
                 string delete_req = "DELETE FROM likes WHERE user_id = '" + userID + "' AND film_id = '" + filmID + "';";
-                if (bdd.INSERT_INTO(delete_req))
+                if (bdd.EXECUTE_REQUEST(delete_req))
                 {
-                    //var repObj = new GetResponse();
-                    //repObj.statusCode=200;
-                    //repObj.comment = "Le mention j'aime à bien été retirée.";
-                    //SendJsonResponse(conn, repObj.getJsonResponse(), repObj.statusCode);
-                    //return;
 
                     //Loic veut que j'envois le JSON contenant la liste des films de l'utilisateur (avec ces likes) en tant que réponse:
                     var movieResponse = new DiscoverResponse();
@@ -339,7 +331,7 @@ namespace ExoHttpAPI
                     return;
                 }
 
-            } else if (Path[1].ToUpper() == "LIKE") //ROUTE LIKE
+            } else if (Path[1].ToUpper() == "LIKE") //ROUTE LIKE (Utilisation abandonée par Loïc dans son Frontend)
             {
                 var userID = Path[2];
                 string filmID = Path[3];
@@ -355,8 +347,6 @@ namespace ExoHttpAPI
                     SendJsonResponse(conn, ErrorJson.getJsonResponse(), ErrorJson.statusCode);
                     return;
                 }
-
-                //Console.WriteLine("userID: '"+userID+"', filmID: '"+filmID+"', liked: '"+liked+"'");
 
                 if (liked.ToUpper() == "TRUE")
                 {
@@ -382,7 +372,7 @@ namespace ExoHttpAPI
                         return;
                     }
                     string insert_req = "INSERT INTO likes (user_id, film_id) VALUES ('" + userID + "', '" + filmID + "');";
-                    bool likeConfirmation = bdd.INSERT_INTO(insert_req);
+                    bool likeConfirmation = bdd.EXECUTE_REQUEST(insert_req);
                     if (likeConfirmation)
                     {
                         //Loic veut que j'envois le JSON contenant la liste des films de l'utilisateur (avec ces likes) en tant que réponse:
@@ -411,7 +401,7 @@ namespace ExoHttpAPI
                 {
                     var bdd = new DatabaseInterface();
                     string delete_req = "DELETE FROM likes WHERE user_id = '" + userID + "' AND film_id = '" + filmID + "';";
-                    if (bdd.INSERT_INTO(delete_req))
+                    if (bdd.EXECUTE_REQUEST(delete_req))
                     {
                         //Loic veut que j'envois le JSON contenant la liste des films de l'utilisateur (avec ces likes) en tant que réponse:
                         var movieResponse = new DiscoverResponse();
@@ -440,10 +430,11 @@ namespace ExoHttpAPI
             } else if (Path[1].ToUpper() == "POSTTEST") { //ROUTE POSTTEST
                 GetResponse response = new GetResponse();
                 response.statusCode = 200;
-                response.comment = "Le post a du marcher";
-                Console.WriteLine("Afficahge du body = '" + body + "'");
+                response.comment = "Le post fonctionne";
+                Console.WriteLine("Afficahge du body du post = '" + body + "'");
                 SendJsonResponse(conn, response.getJsonResponse(), response.statusCode);
-            } else if (Path[1].ToUpper() == "PUTLIKE") //ROUTE PUTLIKE
+
+            } else if (Path[1].ToUpper() == "PUTLIKE") //ROUTE PUTLIKE (Abandonné car ne fonctionne plus à cause de CORS sur le navigateur client, on ne sais pas pourquoi) (Body = null)
             {
                 PutLikeResponse responseObj = new PutLikeResponse();
                 GetResponse ErrorResponse = new GetResponse();
@@ -455,8 +446,6 @@ namespace ExoHttpAPI
                     return;
                 }
 
-                //responseObj.ReverseLike();
-
                 if (responseObj.Execute() == false)
                 {
                     ErrorResponse.statusCode = 500;
@@ -467,7 +456,8 @@ namespace ExoHttpAPI
 
                 SendJsonResponse(conn, responseObj.getJsonReponse(), 200);
                 return;
-            } else if (Path[1].ToUpper() == "POSTLOGIN") //ROUTE POSTLOGIN
+
+            } else if (Path[1].ToUpper() == "POSTLOGIN") //ROUTE POSTLOGIN (Abandonné car ne fonctionne plus à cause de CORS sur le navigateur client, on ne sais pas pourquoi) (Body = null)
             {
                 JObject reqObj = JObject.Parse(body);
                 GetResponse errorRepObj = new GetResponse();
@@ -487,7 +477,7 @@ namespace ExoHttpAPI
                 LoginResponse repObj = new LoginResponse();
                 SendJsonResponse(conn, repObj.getJsonResponse(), 200);
 
-            } else if (Path[1].ToUpper() == "GETUSERLIKES")
+            } else if (Path[1].ToUpper() == "GETUSERLIKES") //Pas eu le temps de la terminée et pas intégré au Frontend. De toute façon elle était inutile car Loïc pouvait depuis le front afficher uniquement les likes de l'utilisateur
             {
                 UserLikesResponse RepObj = new UserLikesResponse();
                 RepObj.Load(body, TMDB_Film_List);
@@ -501,40 +491,55 @@ namespace ExoHttpAPI
 
         }
 
+        /// <summary>
+        /// Méthode permettant de répondre à la requête HTTP en incluant un body formatté en HTML
+        /// </summary>
+        /// <param name="conn">La connexion cliente entrante sur laquelle la réponse doit être renvoyée</param>
+        /// <param name="html">Le code source HTML à renvoyer dans le body de la réponse</param>
+        /// <param name="statusCode">le code status HTTP à renvoyer dans la réponse</param>
         static void SendHtmlResponse(HttpListenerContext conn, string html, int statusCode = 200)
         {
             HttpListenerResponse rep = conn.Response;
+
+            byte[] htmlBytes = System.Text.Encoding.UTF8.GetBytes(html);
+
+            rep.ContentLength64 = htmlBytes.Length;
+            rep.ContentEncoding = System.Text.Encoding.UTF8;
             rep.ContentType = "text/html; charset=utf-8";
+            rep.StatusCode = statusCode;
+
+            //Ajout des en-têtes CORS (Cross Origin Ressource Sharing):
             rep.AppendHeader("Access-Control-Allow-Origin", "*");
             rep.AddHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-Requested-With");
-            rep.AddHeader("Content-type", "application/json");
             rep.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT");
             rep.AddHeader("Access-Control-Max-Age", "1728000");
-            rep.ContentEncoding = System.Text.Encoding.UTF8;
-            rep.StatusCode = statusCode;
-            byte[] htmlBytes = System.Text.Encoding.UTF8.GetBytes(html);
-            rep.ContentLength64 = htmlBytes.Length;
+
             Stream outputStream = rep.OutputStream;
             outputStream.Write(htmlBytes, 0, htmlBytes.Length);
             outputStream.Close();
         }
 
+        /// <summary>
+        /// Méthode permettant de répondre à la requête HTTP en incluant un body formatté en JSON
+        /// </summary>
+        /// <param name="conn">La connexion cliente entrante sur laquelle la réponse doit être renvoyée</param>
+        /// <param name="jsonString">Une chaine de caractère formatté en JSON à inclure dans les données de la réponse</param>
+        /// <param name="statusCode">le code status HTTP à renvoyer dans la réponse</param>
         static bool SendJsonResponse(HttpListenerContext conn, string jsonString, int statusCode = 200)
         {
             HttpListenerResponse rep = conn.Response;
             byte[] buffer = System.Text.Encoding.UTF8.GetBytes(jsonString); //Conversion du json qui va être retourné en binaire
 
             //Ajout des métadonnées de la réponse HTTP (headers):
+            rep.StatusCode = statusCode;
             rep.ContentLength64 = buffer.Length;
             rep.ContentType = "application/json";
             rep.ContentEncoding = System.Text.Encoding.UTF8;
-            //rep.AppendHeader("Access-Control-Allow-Origin", "*");
+            //Ajout des en-têtes CORS (Cross Origin Ressource Sharing):
             rep.AddHeader("Access-Control-Allow-Origin", "*");
             rep.AddHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-Requested-With");
-            rep.AddHeader("Content-type", "application/json");
             rep.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT");
             rep.AddHeader("Access-Control-Max-Age", "1728000");
-            rep.StatusCode = statusCode;
             
             try
             {
@@ -550,26 +555,36 @@ namespace ExoHttpAPI
 
         }
 
+        /// <summary>
+        /// Méthode permettant de répondre à une requête HTTP uniquement avec un code de statut (sans données)
+        /// </summary>
+        /// <param name="conn">La connexion cliente entrante qui à formuler la requête</param>
+        /// <param name="statutCode">Le code de status HTTP à retourner avec le réponse</param>
         static void SendStatutResponse(HttpListenerContext conn, int statutCode)
         {
             HttpListenerResponse rep = conn.Response;
+            conn.Response.StatusCode = statutCode;
+            //Ajout des en-têtes CORS (Cross Origin Ressource Sharing):
             rep.AppendHeader("Access-Control-Allow-Origin", "*");
             rep.AddHeader("Access-Control-Allow-Headers", "Content-Type, Accept, X-Requested-With");
-            rep.AddHeader("Content-type", "application/json");
+            rep.AddHeader("Content-type", "text/html");
             rep.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT");
             rep.AddHeader("Access-Control-Max-Age", "1728000");
-            conn.Response.StatusCode = statutCode;
 
             byte[] buffer = System.Text.Encoding.UTF8.GetBytes("REPONSE CODE " + statutCode);
             Stream outputStream = rep.OutputStream;
             outputStream.Write(buffer, 0, buffer.Length);
 
-            outputStream.Close(); //Peut-être que d'uniquement fermer le flux suffirait et permettrait de ne pas envoyer de data inutiles dans le flux pour rien.
+            outputStream.Close(); 
         }
 
+        /// <summary>
+        /// Requête L'API de TheMovieDatabase en demander une liste de film (page discover) puis retourne la réponse au format JSON
+        /// </summary>
+        /// <returns>Une string contenant les données de la réponse fourni par l'API, formatté en JSON</returns>
         static string GetJsonApi()
         {
-            WebRequest request = WebRequest.Create("http://api.themoviedb.org/3/discover/movie?api_key=53583d53037bff6ba56435db8aca274e&certification_country=US&certification.lte=G&sort_by=popularity.desc&language=fr-FR&page=2");
+            WebRequest request = WebRequest.Create("http://api.themoviedb.org/3/discover/movie?api_key=" + TMDB_API_KEY + "&certification_country=US&certification.lte=G&sort_by=popularity.desc&language=fr-FR&page=2");
             WebResponse rep = request.GetResponse();
 
             Stream repStream = rep.GetResponseStream();
@@ -580,7 +595,10 @@ namespace ExoHttpAPI
         }
 
 
-
+        /// <summary>
+        /// Affiche dans le sortie standart du processus une chaine de caractère
+        /// </summary>
+        /// <param name="text">Une chaine de caractère à afficher</param>
         static void Log(string text)
         {
             Console.WriteLine(text);

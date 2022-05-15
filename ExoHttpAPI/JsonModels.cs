@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ExoHttpAPI
 {
+    //Ce fichier contient plusieurs classes permettant l'échange de donnée avec le FrontEnd.
 
     /// <summary>
     /// Classe permettant d'intégrer les données d'une réponse à une requête HTTP GET de connexion d'un utilisateur.
@@ -179,7 +177,7 @@ namespace ExoHttpAPI
 
         public static string Get_TMDB_Discover_Json()
         {
-            WebRequest request = WebRequest.Create("http://api.themoviedb.org/3/discover/movie?api_key=53583d53037bff6ba56435db8aca274e&certification_country=US&certification.lte=G&sort_by=popularity.desc&language=fr-FR&page=2");
+            WebRequest request = WebRequest.Create("http://api.themoviedb.org/3/discover/movie?api_key=" + Program.TMDB_API_KEY + "&certification_country=US&certification.lte=G&sort_by=popularity.desc&language=fr-FR&page=2");
             WebResponse rep = request.GetResponse();
 
             Stream repStream = rep.GetResponseStream();
@@ -240,11 +238,11 @@ namespace ExoHttpAPI
                 if (userLikeReader.HasRows) { return true; }
                 //Si la mention j'aime n'existe pas:
                 string likeRequest = "INSERT INTO likes (user_id, film_id) VALUES ('"+user_id+"', '"+id_film+"');";
-                return bdd.INSERT_INTO(likeRequest);
+                return bdd.EXECUTE_REQUEST(likeRequest);
             } else if (user_liked == false)
             {
                 string deleteLikeRequest = "DELETE FROM likes WHERE user_id='" + this.user_id + "' AND film_id='" + this.id_film + "';";
-                return bdd.INSERT_INTO(deleteLikeRequest);
+                return bdd.EXECUTE_REQUEST(deleteLikeRequest);
             } else
             {
                 Console.WriteLine("PutLikeResponse.Execute() : Retourne FALSE car l'opération à effectuer n'est pas défini (PutLikeResponse.user_liked n'est n'y TRUE n'y FALSE)");

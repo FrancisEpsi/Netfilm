@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
+﻿using MySql.Data.MySqlClient;
 
 namespace ExoHttpAPI
 {
+    /// <summary>
+    /// Classe permettant de facilier la manipulation de la base de donnée (une sorte d'ORM Custom)
+    /// </summary>
     public class DatabaseInterface
     {
-        private const string mysql_host = "127.0.0.1";//"193.250.153.72";
-        private const string mysql_port = "21832";//"3339";//"3306";
+        //Spécifiez les informations sur la base de donnée ici:
+        private const string mysql_host = "127.0.0.1";
+        private const string mysql_port = "21832";
         private const string mysql_database = "netfilm";
         private const string mysql_user = "backend";
         private const string mysql_password = "dotnet33";
@@ -33,7 +32,7 @@ namespace ExoHttpAPI
             }
         }
 
-        public bool INSERT_INTO(string sqlRequest)
+        public bool EXECUTE_REQUEST(string sqlRequest)
         {
             MySqlConnection conn = Connect();
             if (conn == null) { return false; }
